@@ -59,12 +59,13 @@ Local tool usage metrics are disabled by default. Set `WRANGLER_SEND_METRICS=tru
 
 The public form at `/avaliacao.html` collects opt-in diagnostic answers and shows
 the participant up to three suggestions. After completing the form, the
-participant can download a personalized CSV bundle containing:
+participant can download one personalized **universal CSV model** containing a
+filterable table for financial movements, customers/orders, weekly tasks,
+pricing checks, and improvement actions. The model includes a short
+orientation section with the selected priority and first action, so the same
+structure works for product sellers and service providers.
 
-- a short `LEIA_PRIMEIRO` guide with the selected priority and first action;
-- cash-flow, customer/order, weekly-task, pricing, and action-plan templates.
-
-The browser generates this bundle locally from that participant's answers; it
+The browser generates this file locally from that participant's answers; it
 does not download anyone else's responses. The protected `/admin` page shows
 the individual records and aggregate, name-free bars by question so the
 facilitator can adapt examples and teaching order. The JSON export remains

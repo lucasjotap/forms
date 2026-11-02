@@ -11,7 +11,7 @@
 <p class="small" style="margin-bottom:25px">Pense em como o negócio funciona hoje. Não precisa informar valores nem ter CNPJ.</p>
 <div id="questions"></div><label style="display:flex;gap:12px;align-items:flex-start;margin:20px 0;font-size:.9rem"><input id="collectConsent" type="checkbox" style="margin-top:5px">Concordo em enviar estas respostas ao Lucas Pereira para o diagnóstico e acompanhamento da oficina/projetos. O nome do negócio é opcional. As respostas não serão exibidas publicamente.</label><input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-10000px" placeholder="Deixe em branco"><p id="error" class="error" role="alert"></p><button type="submit">Enviar e ver minhas sugestões →</button>
 </form></section>
-<section id="result" class="panel" hidden aria-live="polite"><span class="eyebrow">Seu próximo passo</span><h2 id="resultTitle" tabindex="-1"></h2><p class="small" id="resultMeta"></p><p id="summary"></p><p id="delivery" role="status" class="positive"></p><button id="retrySend" type="button" hidden>Tentar enviar novamente</button><div id="strengths"></div><div id="recommendations"></div><p class="small">As sugestões partem das respostas de hoje. Não são uma nota do negócio nem uma comprovação de resultado. Comece por uma ação e observe se ela ajuda.</p><div class="buttons"><button id="save" type="button">Baixar resumo</button><button id="downloadModel" class="secondary" type="button">Baixar modelo de planilha</button><button id="print" class="secondary" type="button">Imprimir / salvar PDF</button><button id="new" class="secondary" type="button">Novo negócio</button></div><details><summary>Conferir as respostas usadas</summary><div id="answers"></div></details></section>
+<section id="result" class="panel" hidden aria-live="polite"><span class="eyebrow">Seu próximo passo</span><h2 id="resultTitle" tabindex="-1"></h2><p class="small" id="resultMeta"></p><p id="summary"></p><p id="delivery" role="status" class="positive"></p><button id="retrySend" type="button" hidden>Tentar enviar novamente</button><div id="strengths"></div><div id="recommendations"></div><p class="small">As sugestões partem das respostas de hoje. Não são uma nota do negócio nem uma comprovação de resultado. Comece por uma ação e observe se ela ajuda.</p><div class="buttons"><button id="save" type="button">Baixar resumo</button><button id="downloadModel" class="secondary" type="button">Baixar modelo universal</button><button id="print" class="secondary" type="button">Imprimir / salvar PDF</button><button id="new" class="secondary" type="button">Novo negócio</button></div><details><summary>Conferir as respostas usadas</summary><div id="answers"></div></details></section>
 <footer>Ao enviar, as respostas são guardadas para consulta do organizador. Você também pode baixar seu resumo. Este diagnóstico não substitui o Feedback da Comunidade oficial.</footer></main>
 <script>
 'use strict';
@@ -46,21 +46,29 @@ form.addEventListener('submit',e=>{e.preventDefault();const a=Object.fromEntries
 function csvCell(value){return '"'+String(value??'').replace(/"/g,'""')+'"'}
 function downloadCsv(filename,rows){const csv='\ufeff'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function slug(value){return (value||'meu-negocio').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'meu-negocio'}
-function modelFiles(a){
- const name=a.business.trim()||'Meu negócio',prefix=slug(name),tool=place(a.tool);
- const priority={cash:'dinheiro',price:'preco',customers:'clientes',routine:'rotina',unsure:'a-definir'}[a.priority];
- const first={cash:'Registre entradas, saídas e retiradas durante 7 dias.',price:'Escolha um produto ou serviço e liste todos os custos antes de rever o preço.',customers:'Registre cada pedido ou combinado em um único lugar.',routine:'Escolha até três prioridades por dia e revise no fim do dia.',unsure:'Observe uma semana e escolha a área que mais atrapalha sua rotina.'}[a.priority];
- const files=[
-  ['00_LEIA_PRIMEIRO.csv',[['MODELO PERSONALIZADO — '+name],['Como usar','Comece pelo fluxo de caixa e preencha os movimentos reais.'],['Ferramenta sugerida',tool],['Prioridade indicada',priority],['Primeiro passo',first],['Revisão em 7 dias','O que ficou mais fácil? O que ainda não foi registrado?'],['Aviso','Apague linhas de exemplo antes de usar. Este modelo não substitui orientação contábil.']]],
-  ['01_FLUXO_CAIXA.csv',[['Data','Descrição','Categoria','Entrada (R$)','Saída (R$)','Saldo acumulado (R$)','Forma de pagamento','Observação'],['DD/MM/AAAA','EXEMPLO — apague esta linha','venda / compra / retirada','0,00','0,00','0,00','dinheiro / Pix / cartão','']]],
-  ['02_PEDIDOS_CLIENTES.csv',[['Data','Cliente ou referência','Pedido/serviço','Prazo combinado','Valor combinado (R$)','Situação','Próximo contato'],['DD/MM/AAAA','Exemplo — não use dado sensível','Descreva em poucas palavras','DD/MM/AAAA','0,00','a fazer / em andamento / concluído','DD/MM/AAAA']]],
-  ['03_TAREFAS_SEMANA.csv',[['Data','Prioridade 1','Prioridade 2','Prioridade 3','Concluído?','O que ficou pendente'],['DD/MM/AAAA','Exemplo — apague','','','sim / não','']]],
-  ['04_PRECIFICACAO.csv',[['Produto ou serviço','Material/mercadoria (R$)','Transporte/outros (R$)','Tempo de trabalho (horas)','Valor da hora (R$)','Custo estimado (R$)','Preço cobrado (R$)','O que falta conferir'],['Exemplo — apague','0,00','0,00','0,00','0,00','0,00','0,00','']]],
-  ['05_PLANO_DE_ACAO.csv',[['Ação escolhida','Primeiro passo','Responsável','Prazo','Como vou conferir','Situação'],[first,'Escreva uma ação pequena e observável','Eu','DD/MM/AAAA','Defina um sinal simples de progresso','a fazer']]]
- ];
- return{prefix,files}
-}
-$('downloadModel').onclick=()=>{const a=Object.fromEntries(new FormData(form));if(!questions.every(q=>a[q.id]))return;const model=modelFiles(a);model.files.forEach(([name,rows],index)=>setTimeout(()=>downloadCsv(model.prefix+'_'+name,rows),index*250))}
+function universalModel(a){
+ const name=a.business.trim()||'Meu negócio',priority={cash:'Dinheiro',price:'Preço',customers:'Clientes e pedidos',routine:'Rotina e tarefas',unsure:'A definir'}[a.priority];
+ const first={cash:'Comece registrando toda entrada, saída e retirada.',price:'Comece preenchendo os custos e o preço de um produto ou serviço.',customers:'Comece registrando os próximos pedidos e combinados.',routine:'Comece escolhendo até três tarefas importantes por dia.',unsure:'Observe a rotina por uma semana e escolha um foco.'}[a.priority];
+ return{filename:slug(name)+'_MODELO_CONTROLE_NEGOCIO.csv',rows:[
+  ['MODELO UNIVERSAL DE CONTROLE DO NEGÓCIO — '+name],
+  ['Como usar','Use uma linha por registro. Filtre a coluna Tipo para ver apenas financeiro, cliente, tarefa, preço ou ação.'],
+  ['Foco sugerido para começar',priority],
+  ['Primeiro passo',first],
+  ['Importante','Apague os exemplos antes de usar. Não registre senhas, dados bancários completos ou informações desnecessárias de clientes.'],
+  [],
+  ['Data','Tipo','Descrição','Categoria','Cliente/fornecedor','Produto/serviço','Status','Prazo','Entrada (R$)','Saída (R$)','Valor combinado (R$)','Forma de pagamento','Horas','Preço cobrado (R$)','Custo estimado (R$)','Prioridade','Próximo passo','Observações'],
+  ['DD/MM/AAAA','Financeiro','EXEMPLO — venda recebida','Venda','', 'Produto ou serviço','Concluído','','100,00','0,00','100,00','Pix','','','','Alta','','Apague esta linha'],
+  ['DD/MM/AAAA','Financeiro','EXEMPLO — compra ou despesa','Despesa','Fornecedor','Material/mercadoria','Pago','','0,00','35,00','','Pix','','','','Média','','Apague esta linha'],
+  ['DD/MM/AAAA','Cliente','EXEMPLO — pedido ou serviço','Pedido','Cliente ou referência','Descreva o combinado','A fazer','DD/MM/AAAA','0,00','0,00','0,00','','','','','Alta','Confirmar prazo','Apague esta linha'],
+  ['DD/MM/AAAA','Tarefa','EXEMPLO — tarefa da semana','Rotina','','O que precisa ser feito','A fazer','DD/MM/AAAA','0,00','0,00','','','','','','Alta','Definir primeiro passo','Apague esta linha'],
+  ['DD/MM/AAAA','Preço','EXEMPLO — item a precificar','Custo','','Produto ou serviço','Em análise','','0,00','0,00','','','0,00','0,00','0,00','Média','Conferir custos e tempo','Apague esta linha'],
+  ['DD/MM/AAAA','Ação','EXEMPLO — melhoria escolhida','Plano','','Ação pequena e observável','A fazer','DD/MM/AAAA','0,00','0,00','','','','','','Alta','Registrar progresso','Apague esta linha'],
+  [],
+  ['Categorias sugeridas','Venda; Despesa; Retirada; Pedido; Rotina; Custo; Plano'],
+  ['Tipos sugeridos','Financeiro; Cliente; Tarefa; Preço; Ação'],
+  ['Revisão semanal','Confira entradas, saídas, contas próximas, pedidos pendentes e uma ação de melhoria.']
+ ]}}
+$('downloadModel').onclick=()=>{const a=Object.fromEntries(new FormData(form));if(!questions.every(q=>a[q.id]))return;const model=universalModel(a);downloadCsv(model.filename,model.rows)}
 $('save').onclick=()=>{if(!lastSummary)return;const url=URL.createObjectURL(new Blob([lastSummary],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='diagnostico_negocio.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};$('print').onclick=()=>window.print();$('new').onclick=()=>{if(!confirm('Começar outro negócio? Baixe o resumo antes, se quiser guardá-lo.'))return;form.reset();update();window.scrollTo({top:0,behavior:'smooth'})};
 </script><script>
 (()=>{let pending=null,busy=false;const delivery=document.getElementById('delivery'),retry=document.getElementById('retrySend'),submit=form.querySelector('button[type=submit]');
