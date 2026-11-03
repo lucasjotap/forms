@@ -133,6 +133,22 @@ bars by question so the facilitator can adapt examples and teaching order. The J
 export remains protected by the same administrator check. No participant data from
 the database is ever placed in a downloaded spreadsheet.
 
+## Deploying from GitHub (Cloudflare Workers Builds)
+
+Connect the repository from the existing Worker (**forms-diagnostic → Settings → Build**), not
+from a new Worker, so the URL and D1 data stay the same. Use these settings:
+
+| Setting | Value |
+|---|---|
+| Build command | `npm run build` |
+| Deploy command | `npm run deploy` (runs `wrangler deploy --config dist/server/wrangler.json`) |
+| Build variables | `CF_WORKER_NAME=forms-diagnostic`, `CF_D1_DATABASE_NAME=<D1 name>`, `CF_D1_DATABASE_ID=<D1 id>` |
+
+The D1 name and ID are shown under the Worker's **Bindings** (binding `DB`). Without these
+variables the build keeps the local placeholders, and the deploy would create a different Worker
+with no response data. This deploy does not run D1 migrations; the live database already has its
+tables.
+
 ## Workspace Auth Headers
 
 Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
