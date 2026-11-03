@@ -58,18 +58,80 @@ Local tool usage metrics are disabled by default. Set `WRANGLER_SEND_METRICS=tru
 ## Workshop collection flow
 
 The public form at `/avaliacao.html` collects opt-in diagnostic answers and shows
-the participant up to three suggestions. After completing the form, the
-participant can download one personalized **universal CSV model** containing a
-filterable table for financial movements, customers/orders, weekly tasks,
-pricing checks, and improvement actions. The model includes a short
-orientation section with the selected priority and first action, so the same
-structure works for product sellers and service providers.
+the participant up to three suggestions. Sending answers to the organizer still
+requires the consent checkbox and goes to `/api/responses` (D1), exactly as before.
 
-The browser generates this file locally from that participant's answers; it
-does not download anyone else's responses. The protected `/admin` page shows
-the individual records and aggregate, name-free bars by question so the
-facilitator can adapt examples and teaching order. The JSON export remains
-protected by the same administrator check.
+### Downloadable control model (generated in the browser)
+
+After the suggestions appear, the participant can click **Baixar meu modelo de
+controle (.xlsx)**. The file is built entirely in the browser; the download makes
+no API call and sends no answers anywhere. The only network requests are two
+same-origin static GETs, loaded lazily on the first click:
+
+- `public/vendor/exceljs.min.js` — ExcelJS 4.4.0 browser build, MIT license
+  (`public/vendor/exceljs.LICENSE.txt`), ~948 KB (~258 KB gzip). It is
+  self-hosted, not loaded from a CDN. It is pinned as a devDependency; refresh the
+  copy with `npm run vendor:exceljs` after changing the version.
+- `public/planilha-modelo.js` — the workbook definition (`PlanilhaModelo.buildWorkbook`)
+  and the CSV fallback (`PlanilhaModelo.buildCsv`).
+
+The workbook follows `../PLANILHA_UNIVERSAL_CONTEXT.md` and
+`../../08_diagnostico_e_devolutiva/LEIA_PRIMEIRO.md`. It adapts to the form's
+"Usar em qual atividade?" answer:
+
+| Activity | Tabs (in order; grey = complementary) |
+|---|---|
+| Workshop de Educação Financeira e Planejamento | LEIA PRIMEIRO, FLUXO DE CAIXA (passo 1), CONTAS E COMPROMISSOS (passo 2), ORÇAMENTO DO MÊS (passo 3), PLANO DE MELHORIA (passo 4), PAINEL, then grey CLIENTES E PEDIDOS, PRECIFICAÇÃO, ROTINA SEMANAL |
+| Projeto 1 · Gestão de pequenos negócios | LEIA PRIMEIRO, PAINEL, FLUXO DE CAIXA, CONTAS E COMPROMISSOS, PRECIFICAÇÃO, PLANO DE MELHORIA, then grey CLIENTES E PEDIDOS, ROTINA SEMANAL |
+| Projeto 2 · Organização e desenvolvimento | LEIA PRIMEIRO, PAINEL, ROTINA SEMANAL, CLIENTES E PEDIDOS, PLANO DE MELHORIA, then grey FLUXO DE CAIXA, CONTAS E COMPROMISSOS, PRECIFICAÇÃO |
+| anything else | the universal 8 tabs (LEIA PRIMEIRO, PAINEL, FLUXO DE CAIXA, CONTAS E COMPROMISSOS, CLIENTES E PEDIDOS, PRECIFICAÇÃO, ROTINA SEMANAL, PLANO DE MELHORIA) |
+
+The workshop version follows the participant workbook (caderno) page by page: LEIA PRIMEIRO
+maps each workshop step to a tab, and the examples reuse Casos A/B/C. The tool answer also
+changes the file: "papel" adds print guidance and taller rows for handwriting, and
+"celular" adds tips for the mobile apps.
+
+Every version separates input cells (light blue) from formula cells (grey-green). It has list,
+date and value validation, conditional formatting, frozen headers, filters, tab colors, A4 print
+areas (header + 25 rows, one page per tab, PAINEL two pages), pt-BR currency/date formats and
+example rows labelled "EXEMPLO — APAGUE ANTES DE USAR". PAINEL leaves those example rows out
+of its totals. The only form data written into the file is the business name, the activity,
+the suggested focus, and each diagnosis suggestion (title, action and how to check). The
+suggestions are pre-filled as the person's own rows in PLANO DE MELHORIA.
+Formulas use only functions available in both Excel and Google Sheets (`SUMIFS`,
+`COUNTIFS`, `IFERROR`, `INDEX`/`MATCH`, `REPT`, …). Empty rows return blanks or "—".
+ExcelJS cannot create native charts, so PAINEL uses text bars (`REPT("█", …)`).
+
+A link below the button offers a simple fallback: a UTF-8 (with BOM) CSV that uses `;`
+as the separator and quotes every field. It is also generated client-side.
+
+To change the spreadsheet, edit `public/planilha-modelo.js`; no build step is needed for it.
+
+### Testing the spreadsheet
+
+From the project root (`09_site_coleta/`), with `npm run dev -- --port 5185` running in `source/`:
+
+```sh
+python qa_xlsx.py                    # Playwright: fill form, download .xlsx + .csv, validate both
+python qa_xlsx.py --file model.xlsx --csv model.csv   # validate existing files only
+python qa_local.py                   # consent, D1 write, admin dashboard
+```
+
+`qa_xlsx.py` needs `playwright`, `openpyxl` and, optionally, `formulas`. Set `QA_BASE_URL` to test
+another server, e.g. the built Worker started by `npm start -- --port 8799`. The script records every
+network request made during the downloads and fails if any request is not a GET, goes to `/api/`, or
+contains the business name or answers. It checks the sheets, headers, formulas, validations, freeze
+panes, filters and CSV column counts. If LibreOffice (`soffice`) is installed, it also recalculates
+the file and looks for error values. With the `formulas` package, it recalculates the file and a filled
+test scenario. On Windows with Excel installed, it also opens each version in a private Excel instance
+(never the user's open window). There it checks for a repair prompt, error cells and clipped text, and
+counts printed pages; set `QA_EXCEL=0` to skip this. Screenshots go to `../qa_output/screens/`.
+Google Sheets and phones are not tested automatically, so open the file there before a workshop.
+
+The protected `/admin` page shows the individual records and aggregate, name-free
+bars by question so the facilitator can adapt examples and teaching order. The JSON
+export remains protected by the same administrator check. No participant data from
+the database is ever placed in a downloaded spreadsheet.
 
 ## Workspace Auth Headers
 
