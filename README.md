@@ -75,35 +75,24 @@ same-origin static GETs, loaded lazily on the first click:
 - `public/planilha-modelo.js` — the workbook definition (`PlanilhaModelo.buildWorkbook`)
   and the CSV fallback (`PlanilhaModelo.buildCsv`).
 
-The workbook follows `../PLANILHA_UNIVERSAL_CONTEXT.md` and
-`../../08_diagnostico_e_devolutiva/LEIA_PRIMEIRO.md`. It adapts to the form's
-"Usar em qual atividade?" answer:
+The workbook is deliberately simple: 4 tabs, the same for every participant.
 
-| Activity | Tabs (in order; grey = complementary) |
-|---|---|
-| Workshop de Educação Financeira e Planejamento | LEIA PRIMEIRO, FLUXO DE CAIXA (passo 1), CONTAS E COMPROMISSOS (passo 2), ORÇAMENTO DO MÊS (passo 3), PLANO DE MELHORIA (passo 4), PAINEL, then grey CLIENTES E PEDIDOS, PRECIFICAÇÃO, ROTINA SEMANAL |
-| Projeto 1 · Gestão de pequenos negócios | LEIA PRIMEIRO, PAINEL, FLUXO DE CAIXA, CONTAS E COMPROMISSOS, PRECIFICAÇÃO, PLANO DE MELHORIA, then grey CLIENTES E PEDIDOS, ROTINA SEMANAL |
-| Projeto 2 · Organização e desenvolvimento | LEIA PRIMEIRO, PAINEL, ROTINA SEMANAL, CLIENTES E PEDIDOS, PLANO DE MELHORIA, then grey FLUXO DE CAIXA, CONTAS E COMPROMISSOS, PRECIFICAÇÃO |
-| anything else | the universal 8 tabs (LEIA PRIMEIRO, PAINEL, FLUXO DE CAIXA, CONTAS E COMPROMISSOS, CLIENTES E PEDIDOS, PRECIFICAÇÃO, ROTINA SEMANAL, PLANO DE MELHORIA) |
+| Tab | You type | Calculated |
+|---|---|---|
+| MEU CAIXA | Data, O que foi, Entrou, Saiu | Running balance; totals at the top |
+| CONTAS A PAGAR E RECEBER | Vencimento, O que é, Pagar ou receber?, Valor, Já foi pago? | Situação (Atrasada / Vence hoje / Vence amanhã / Vence em N dias / Em dia / Concluída); open totals |
+| PEDIDOS | Data, Cliente (apelido), O que pediu, Valor, Entregar até, Pago?, Entregue? | Situação; amount still to receive; orders not delivered |
+| PREÇO | Produto, Material, Outros custos, Horas, Valor da hora, Preço cobrado | Custo total and Sobra (red when negative) |
 
-The workshop version follows the participant workbook (caderno) page by page: LEIA PRIMEIRO
-maps each workshop step to a tab, and the examples reuse Casos A/B/C. The tool answer also
-changes the file: "papel" adds print guidance and taller rows for handwriting, and
-"celular" adds tips for the mobile apps.
-
-Every version separates input cells (light blue) from formula cells (grey-green). It has list,
-date and value validation, conditional formatting, frozen headers, filters, tab colors, A4 print
-areas (header + 25 rows, one page per tab, PAINEL two pages), pt-BR currency/date formats and
-example rows labelled "EXEMPLO — APAGUE ANTES DE USAR". PAINEL leaves those example rows out
-of its totals. The only form data written into the file is the business name, the activity,
-the suggested focus, and each diagnosis suggestion (title, action and how to check). The
-suggestions are pre-filled as the person's own rows in PLANO DE MELHORIA.
-Formulas use only functions available in both Excel and Google Sheets (`SUMIFS`,
-`COUNTIFS`, `IFERROR`, `INDEX`/`MATCH`, `REPT`, …). Empty rows return blanks or "—".
-ExcelJS cannot create native charts, so PAINEL uses text bars (`REPT("█", …)`).
-
-A link below the button offers a simple fallback: a UTF-8 (with BOM) CSV that uses `;`
-as the separator and quotes every field. It is also generated client-side.
+Each tab has a title with the business name, one or two lines of help, a totals row, and one
+greyed example row above the table. The example is not part of any total, so nothing needs to be
+deleted. Below that are the header and the table, with a frozen header, simple validations and
+lists, colour only on the Situação/Sobra columns, and a one-page A4 print area. The only form data
+written into the file is the business name. Formulas use only `IF`, `AND`, `OR`, `SUM`, `SUMIFS`,
+`COUNTIFS`, `N`, `ISNUMBER` and `TODAY`, which work in Excel and Google Sheets.
+A link below the button offers a simple fallback: a UTF-8 (with BOM) CSV with only the cash
+columns (Data, O que foi, Entrou, Saiu), `;` as the separator and every field quoted. It is also
+generated client-side.
 
 To change the spreadsheet, edit `public/planilha-modelo.js`; no build step is needed for it.
 
@@ -113,25 +102,56 @@ From the project root (`09_site_coleta/`), with `npm run dev -- --port 5185` run
 
 ```sh
 python qa_xlsx.py                    # Playwright: fill form, download .xlsx + .csv, validate both
-python qa_xlsx.py --file model.xlsx --csv model.csv   # validate existing files only
+python qa_xlsx.py --file model.xlsx  # validate an existing file only
 python qa_local.py                   # consent, D1 write, admin dashboard
 ```
 
-`qa_xlsx.py` needs `playwright`, `openpyxl` and, optionally, `formulas`. Set `QA_BASE_URL` to test
-another server, e.g. the built Worker started by `npm start -- --port 8799`. The script records every
-network request made during the downloads and fails if any request is not a GET, goes to `/api/`, or
-contains the business name or answers. It checks the sheets, headers, formulas, validations, freeze
-panes, filters and CSV column counts. If LibreOffice (`soffice`) is installed, it also recalculates
-the file and looks for error values. With the `formulas` package, it recalculates the file and a filled
-test scenario. On Windows with Excel installed, it also opens each version in a private Excel instance
-(never the user's open window). There it checks for a repair prompt, error cells and clipped text, and
-counts printed pages; set `QA_EXCEL=0` to skip this. Screenshots go to `../qa_output/screens/`.
-Google Sheets and phones are not tested automatically, so open the file there before a workshop.
-
+`qa_xlsx.py` needs `playwright` and `openpyxl`. Set `QA_BASE_URL` to test another server, e.g. the
+built Worker started by `npm start -- --port 8799`. The script records every network request made
+during the downloads and fails if any request is not a GET, goes to `/api/`, or contains the
+business name or answers. It checks the tabs, headers, formulas, validations, frozen header, print
+area and the CSV. On Windows with Excel installed, it also opens the file in a private Excel
+instance (never the user's open window). There it checks for a repair prompt, error cells and
+clipped text, and confirms one printed page per tab. It then types a test scenario and compares
+28 results with hand-computed values; set `QA_EXCEL=0` to skip this. Screenshots go to
+`../qa_output/screens/`. Google Sheets and phones are not tested automatically.
 The protected `/admin` page shows the individual records and aggregate, name-free
 bars by question so the facilitator can adapt examples and teaching order. The JSON
 export remains protected by the same administrator check. No participant data from
 the database is ever placed in a downloaded spreadsheet.
+
+## Deploying from GitHub (Cloudflare Workers Builds)
+
+Connect the repository from the existing Worker (**forms-diagnostic → Settings → Build**), not
+from a new Worker, so the URL and D1 data stay the same. Use these settings:
+
+| Setting | Value |
+|---|---|
+| Build command | `npm run build` |
+| Deploy command | `npm run deploy` (runs `wrangler deploy --config dist/server/wrangler.json`) |
+| Build variables | `CF_WORKER_NAME=forms-diagnostic`, `CF_D1_DATABASE_NAME=<D1 name>`, `CF_D1_DATABASE_ID=<D1 id>` |
+
+The D1 name and ID are shown under the Worker's **Bindings** (binding `DB`). Without these
+variables the build keeps the local placeholders, and the deploy would create a different Worker
+with no response data. This deploy does not run D1 migrations; the live database already has its
+tables.
+
+### Organizer access outside ChatGPT Sites
+
+The admin check reads the `oai-authenticated-*` identity headers, which only ChatGPT Sites
+sets and strips safely. On a plain Cloudflare Worker, `worker/index.ts` removes any such
+headers a client sends. It then protects `/admin` and `GET /api/responses` with HTTP Basic
+auth: any username, and the password from the `ADMIN_PASSWORD` secret. The public form
+submission (`POST /api/responses`) stays open. Set `TRUST_PLATFORM_AUTH=1` only when the app
+really runs behind ChatGPT Sites. Local `npm run dev` is unchanged.
+
+The Worker needs these secrets (they persist across deploys):
+
+```sh
+npx wrangler secret put FORM_SECRET    --config dist/server/wrangler.json   # random string, signs form tokens
+npx wrangler secret put ADMIN_EMAIL    --config dist/server/wrangler.json   # organizer email
+npx wrangler secret put ADMIN_PASSWORD --config dist/server/wrangler.json   # /admin password
+```
 
 ## Workspace Auth Headers
 
