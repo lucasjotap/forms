@@ -149,6 +149,23 @@ variables the build keeps the local placeholders, and the deploy would create a 
 with no response data. This deploy does not run D1 migrations; the live database already has its
 tables.
 
+### Organizer access outside ChatGPT Sites
+
+The admin check reads the `oai-authenticated-*` identity headers, which only ChatGPT Sites
+sets and strips safely. On a plain Cloudflare Worker, `worker/index.ts` removes any such
+headers a client sends. It then protects `/admin` and `GET /api/responses` with HTTP Basic
+auth: any username, and the password from the `ADMIN_PASSWORD` secret. The public form
+submission (`POST /api/responses`) stays open. Set `TRUST_PLATFORM_AUTH=1` only when the app
+really runs behind ChatGPT Sites. Local `npm run dev` is unchanged.
+
+The Worker needs these secrets (they persist across deploys):
+
+```sh
+npx wrangler secret put FORM_SECRET    --config dist/server/wrangler.json   # random string, signs form tokens
+npx wrangler secret put ADMIN_EMAIL    --config dist/server/wrangler.json   # organizer email
+npx wrangler secret put ADMIN_PASSWORD --config dist/server/wrangler.json   # /admin password
+```
+
 ## Workspace Auth Headers
 
 Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
